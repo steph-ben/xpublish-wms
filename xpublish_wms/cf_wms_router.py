@@ -170,10 +170,10 @@ def get_capabilities(ds: xr.Dataset, request: Request):
 
         bounds = {
             'CRS': 'EPSG:4326',
-            'minx': f'{da.cf.coords["longitude"].min().values.item()}',
-            'miny': f'{da.cf.coords["latitude"].min().values.item()}',
-            'maxx': f'{da.cf.coords["longitude"].max().values.item()}',
-            'maxy': f'{da.cf.coords["latitude"].max().values.item()}'
+            'minx': f'{da.cf.coords["latitude"].min().values.item()}',
+            'miny': f'{da.cf.coords["longitude"].min().values.item()}',
+            'maxx': f'{da.cf.coords["latitude"].max().values.item()}',
+            'maxy': f'{da.cf.coords["longitude"].max().values.item()}'
         }
 
 
@@ -240,9 +240,9 @@ def get_map(dataset: xr.Dataset, query: dict, cache: cachey.Cache):
     parameter = query['layers']
     t = query.get('time', None)
     colorscalerange = [float(x) for x in query.get('colorscalerange', 'nan,nan').split(',')]
-    autoscale = query.get('autoscale', 'false') != 'false'
+    autoscale = True #query.get('autoscale', 'false') != 'false'
     style = query['styles']
-    stylename, palettename = style.split('/')
+    stylename, palettename = "default", "default"#style.split('/')
 
     # This is an image, so only use the timestep that was requested
     if t is not None:
@@ -255,6 +255,8 @@ def get_map(dataset: xr.Dataset, query: dict, cache: cachey.Cache):
     if da.cf.coords['longitude'].dims[0] == da.cf.coords['longitude'].name:
         # Regular grid
         # Unpack the requested data and resample
+        miny, minx, maxy, maxx = bbox
+        bbox = minx, miny, maxx, maxy
         clipped = da.rio.clip_box(*bbox, crs=crs)
         resampled_data = clipped.rio.reproject(
             dst_crs=crs,
@@ -262,7 +264,7 @@ def get_map(dataset: xr.Dataset, query: dict, cache: cachey.Cache):
             resampling=Resampling.nearest,
             transform=from_bounds(*bbox, width=width, height=height),
         )
-        
+
         reproject_time = time.time()
         logger.info(f'clip and reproject regular: {reproject_time - start}')
     else:
